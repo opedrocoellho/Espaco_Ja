@@ -1,0 +1,8 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "echo 'Build completed'",
+        "dev": "echo 'Dev server running'"
+    }
+}
