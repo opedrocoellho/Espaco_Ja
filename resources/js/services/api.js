@@ -6,15 +6,25 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
     },
+    withCredentials: true,
+    timeout: 30000 // 30 segundos timeout
 });
 
-// Interceptor para adicionar token de autenticação
+// Interceptor para adicionar token de autenticação e CSRF
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('auth_token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Adicionar CSRF token se disponível
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken) {
+        config.headers['X-CSRF-TOKEN'] = csrfToken;
+    }
+    
     return config;
 });
 
