@@ -4,10 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Patterns\ReservaSubject;
-use App\Patterns\EmailNotificationObserver;
-use App\Patterns\SMSNotificationObserver;
 
 class Reserva extends Model
 {
@@ -27,63 +23,49 @@ class Reserva extends Model
         'adultos',
         'criancas',
         'bebes',
-        'pets'
+        'pets',
+        'taxa_adicional',
     ];
 
-    protected $casts = [
-        'data' => 'date',
-        'valor_total' => 'decimal:2',
-        'desconto' => 'decimal:2'
-    ];
-
-    protected static function boot()
+    protected function casts(): array
     {
-        parent::boot();
-
-        static::created(function ($reserva) {
-            $subject = new ReservaSubject();
-            $subject->attach(new EmailNotificationObserver());
-            $subject->attach(new SMSNotificationObserver());
-            $subject->notify($reserva, 'criada');
-        });
-
-        static::updated(function ($reserva) {
-            if ($reserva->isDirty('status')) {
-                $subject = new ReservaSubject();
-                $subject->attach(new EmailNotificationObserver());
-                $subject->attach(new SMSNotificationObserver());
-                $subject->notify($reserva, $reserva->status);
-            }
-        });
+        return [
+            'data' => 'date',
+            'horario_inicio' => 'datetime:H:i',
+            'horario_fim' => 'datetime:H:i',
+            'valor_total' => 'decimal:2',
+            'desconto' => 'decimal:2',
+            'taxa_adicional' => 'decimal:2',
+        ];
+    }
+    
+    public function getTotalHospedesAttribute()
+    {
+        return $this->adultos + $this->criancas + $this->bebes;
     }
 
-    public function user(): BelongsTo
+    public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function espaco(): BelongsTo
+    public function espaco()
     {
         return $this->belongsTo(Espaco::class);
     }
 
-    public function getStatusColorAttribute(): string
+    public function scopePendente($query)
     {
-        return match($this->status) {
-            'pendente' => 'yellow',
-            'confirmada' => 'green',
-            'cancelada' => 'red',
-            default => 'gray'
-        };
+        return $query->where('status', 'pendente');
     }
 
-    public function getStatusTextAttribute(): string
+    public function scopeConfirmada($query)
     {
-        return match($this->status) {
-            'pendente' => 'Pendente',
-            'confirmada' => 'Confirmada',
-            'cancelada' => 'Cancelada',
-            default => 'Desconhecido'
-        };
+        return $query->where('status', 'confirmada');
+    }
+
+    public function scopeCancelada($query)
+    {
+        return $query->where('status', 'cancelada');
     }
 }

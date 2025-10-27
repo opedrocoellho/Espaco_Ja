@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Avaliacao extends Model
 {
@@ -15,21 +14,23 @@ class Avaliacao extends Model
     protected $fillable = [
         'user_id',
         'espaco_id',
+        'reserva_id',
         'nota',
-        'comentario'
+        'comentario',
     ];
 
-    protected $casts = [
-        'nota' => 'integer'
-    ];
-
-    public function user(): BelongsTo
+    public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function espaco(): BelongsTo
+    public function espaco()
     {
         return $this->belongsTo(Espaco::class);
+    }
+
+    public function reserva()
+    {
+        return $this->belongsTo(Reserva::class);
     }
 }

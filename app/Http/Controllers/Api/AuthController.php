@@ -5,70 +5,57 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
+            'whatsapp' => 'nullable|string|max:20',
+            'tipo_usuario' => 'nullable|in:locatario,anfitriao,ambos',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Dados inválidos',
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'whatsapp' => $request->whatsapp,
+            'tipo_usuario' => $request->tipo_usuario ?? 'locatario',
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Usuário criado com sucesso',
             'user' => $user,
-            'token' => $token
+            'token' => $token,
         ], 201);
     }
 
     public function login(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'email' => 'required|email',
             'password' => 'required',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Dados inválidos',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (!Auth::attempt($request->only('email', 'password'))) {
             throw ValidationException::withMessages([
                 'email' => ['Credenciais inválidas.'],
             ]);
         }
 
+        $user = Auth::user();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Login realizado com sucesso',
             'user' => $user,
-            'token' => $token
+            'token' => $token,
         ]);
     }
 
@@ -76,15 +63,11 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json([
-            'message' => 'Logout realizado com sucesso'
-        ]);
+        return response()->json(['message' => 'Logout realizado com sucesso']);
     }
 
     public function user(Request $request)
     {
-        return response()->json([
-            'data' => $request->user()
-        ]);
+        return response()->json($request->user());
     }
 }
